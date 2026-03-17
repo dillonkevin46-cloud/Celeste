@@ -28,7 +28,7 @@ def init_db():
         )
     """)
 
-    # Create Assignees table (optional, but good for seeding)
+    # Create Assignees table
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS assignees (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -37,7 +37,6 @@ def init_db():
     """)
 
     # Create KPI daily tasks table
-    # Columns for Mon, Tue, Wed, Thu, Fri, Sat (Boolean 0 or 1)
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS kpi_tasks (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -55,7 +54,7 @@ def init_db():
     try:
         cursor.execute("INSERT INTO users (username, password) VALUES (?, ?)", ("Tradecore", "Tradecore"))
     except sqlite3.IntegrityError:
-        pass # Already exists
+        pass
 
     # Seed Assignees
     assignees = ["Rogan", "Vitto", "Jared", "Lee"]
@@ -76,6 +75,7 @@ def init_db():
     conn.commit()
     conn.close()
 
+# --- Auth / Users ---
 def authenticate(username, password):
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
@@ -84,7 +84,53 @@ def authenticate(username, password):
     conn.close()
     return user is not None
 
+def get_users():
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("SELECT id, username, password FROM users")
+    users = cursor.fetchall()
+    conn.close()
+    return users
+
+def add_user(username, password):
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    try:
+        cursor.execute("INSERT INTO users (username, password) VALUES (?, ?)", (username, password))
+        conn.commit()
+    except sqlite3.IntegrityError:
+        pass
+    finally:
+        conn.close()
+
+def update_user(user_id, username, password):
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    try:
+        cursor.execute("UPDATE users SET username = ?, password = ? WHERE id = ?", (username, password, user_id))
+        conn.commit()
+    except sqlite3.IntegrityError:
+        pass
+    finally:
+        conn.close()
+
+def delete_user(user_id):
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM users WHERE id = ?", (user_id,))
+    conn.commit()
+    conn.close()
+
+# --- Assignees ---
 def get_assignees():
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("SELECT id, name FROM assignees")
+    assignees = cursor.fetchall()
+    conn.close()
+    return assignees
+
+def get_assignee_names():
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     cursor.execute("SELECT name FROM assignees")
@@ -92,6 +138,36 @@ def get_assignees():
     conn.close()
     return assignees
 
+def add_assignee(name):
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    try:
+        cursor.execute("INSERT INTO assignees (name) VALUES (?)", (name,))
+        conn.commit()
+    except sqlite3.IntegrityError:
+        pass
+    finally:
+        conn.close()
+
+def update_assignee(assignee_id, name):
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    try:
+        cursor.execute("UPDATE assignees SET name = ? WHERE id = ?", (name, assignee_id))
+        conn.commit()
+    except sqlite3.IntegrityError:
+        pass
+    finally:
+        conn.close()
+
+def delete_assignee(assignee_id):
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM assignees WHERE id = ?", (assignee_id,))
+    conn.commit()
+    conn.close()
+
+# --- To-Do Tasks ---
 def get_tasks():
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
@@ -107,6 +183,13 @@ def add_task(task_name, assignee, priority, due_date, status):
         "INSERT INTO tasks (task_name, assignee, priority, due_date, status) VALUES (?, ?, ?, ?, ?)",
         (task_name, assignee, priority, due_date, status)
     )
+    conn.commit()
+    conn.close()
+
+def update_task_status(task_id, status):
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("UPDATE tasks SET status = ? WHERE id = ?", (status, task_id))
     conn.commit()
     conn.close()
 
@@ -127,6 +210,7 @@ def delete_task(task_id):
     conn.commit()
     conn.close()
 
+# --- KPI Tasks ---
 def get_kpi_tasks():
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
@@ -135,11 +219,39 @@ def get_kpi_tasks():
     conn.close()
     return kpis
 
-def update_kpi_task(task_id, day_col, value):
+def add_kpi_task(task_name):
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
-    # day_col should be one of 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'
+    try:
+        cursor.execute("INSERT INTO kpi_tasks (task_name) VALUES (?)", (task_name,))
+        conn.commit()
+    except sqlite3.IntegrityError:
+        pass
+    finally:
+        conn.close()
+
+def update_kpi_task_name(task_id, task_name):
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    try:
+        cursor.execute("UPDATE kpi_tasks SET task_name = ? WHERE id = ?", (task_name, task_id))
+        conn.commit()
+    except sqlite3.IntegrityError:
+        pass
+    finally:
+        conn.close()
+
+def update_kpi_task_day(task_id, day_col, value):
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
     query = f"UPDATE kpi_tasks SET {day_col} = ? WHERE id = ?"
     cursor.execute(query, (value, task_id))
+    conn.commit()
+    conn.close()
+
+def delete_kpi_task(task_id):
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM kpi_tasks WHERE id = ?", (task_id,))
     conn.commit()
     conn.close()

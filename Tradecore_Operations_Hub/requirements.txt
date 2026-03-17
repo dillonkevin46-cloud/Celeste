@@ -3,3 +3,6 @@ matplotlib
 pandas
 openpyxl
 pyinstaller
+tkcalendar
+Pillow
+python-dateutil
